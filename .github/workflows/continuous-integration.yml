@@ -2,7 +2,7 @@ name: Scalar
 
 env:
   GIT_REPOSITORY: dscho/git
-  GIT_REF: tentative/vfs-2.32.0
+  GIT_REF: testing/vfs-2.32.0-downgrading-fsmonitor-to-v1
   DEVELOPER: 1
 
 on:
