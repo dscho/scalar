@@ -82,6 +82,14 @@ jobs:
 
         $SUDO make -j5 $extra install
 
+    - name: Ensure that we use the built Git (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        cmd /c where git
+        git version
+        if ((git version) -like "*.vfs.*") { echo Good } else { exit 1 }
+
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
