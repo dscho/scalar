@@ -2,12 +2,12 @@ name: Scalar
 
 env:
   GIT_REPOSITORY: microsoft/git
-  GIT_REF:
+  GIT_REF: tentative/vfs-2.32.0
   DEVELOPER: 1
 
 on:
   push:
-    branches: [ main, releases/* ]
+    branches: [ main, releases/*, vfs-2.32.0-without-git-installers ]
   pull_request:
     branches: [ main, releases/* ]
 
