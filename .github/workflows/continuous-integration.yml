@@ -1,5 +1,10 @@
 name: Scalar
 
+env:
+  GIT_REPOSITORY: microsoft/git
+  GIT_REF:
+  DEVELOPER: 1
+
 on:
   push:
     branches: [ main, releases/* ]
@@ -24,6 +29,58 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0 # Indicate full history so Nerdbank.GitVersioning works.
+
+    - uses: actions/checkout@v2
+      with:
+        path: git
+        repository: ${{ env.GIT_REPOSITORY }}
+        ref: ${{ env.GIT_REF }}
+
+    - name: Setup build tools on Windows
+      if: runner.os == 'Windows'
+      uses: git-for-windows/setup-git-for-windows-sdk@v1
+      with:
+        flavor: makepkg-git
+
+    - name: Install build dependencies for Git (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get -q -y install libssl-dev libcurl4-openssl-dev gettext
+
+    - name: Build and install Git
+      shell: bash
+      run: |
+        cd git
+
+        # We do require a VFS version
+        def_ver="$(sed -n 's/DEF_VER=\(.*vfs.*\)/\1/p' GIT-VERSION-GEN)"
+        test -n "$def_ver"
+
+        # Ensure that `git version` reflects DEF_VER
+        case "$(git describe --match "v[0-9]*vfs*" HEAD)" in
+        ${def_ver%%.vfs.*}.vfs.*) ;; # okay, we can use this
+        *) git -c user.name=ci -c user.email=ci@github tag -m for-testing ${def_ver}.NNN.g$(git rev-parse --short HEAD);;
+        esac
+
+        SUDO=
+        extra=
+        case "${{ runner.os }}" in
+        Windows)
+          extra=DESTDIR=/c/Progra~1/Git
+          cygpath -aw "/c/Program Files/Git/cmd" >>$GITHUB_PATH
+          ;;
+        Linux)
+          SUDO=sudo
+          extra=prefix=/usr
+          ;;
+        macOS)
+          SUDO=sudo
+          extra=prefix=/usr/local
+          ;;
+        esac
+
+        $SUDO make -j5 $extra install
 
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
@@ -60,44 +117,6 @@ jobs:
         echo 'BUILD_FILE_EXT=.exe' >>$env:GITHUB_ENV
         echo "TRACE2_BASENAME=Trace2.${{ github.run_id }}__${{ github.run_number }}__${{ matrix.os }}__${{ matrix.features }}" >>$env:GITHUB_ENV
 
-    - name: Setup Git installer
-      shell: bash
-      run: |
-        GIT_VERSION=$(grep '<GitPackageVersion>' Directory.Build.props | grep -Eo '[0-9.]+(-\w+)*')
-        cd ../out
-        dotnet new classlib -n Scalar.GitInstaller
-        cd Scalar.GitInstaller
-        cp ../../scalar/nuget.config .
-        dotnet add Scalar.GitInstaller.csproj package "GitFor${BUILD_PLATFORM}.GVFS.Installer" --package-directory . --version "$GIT_VERSION" --source "https://pkgs.dev.azure.com/gvfs/ci/_packaging/Dependencies/nuget/v3/index.json"
-
-    - name: Install Git (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        cd ../out/Scalar.GitInstaller
-        sudo apt-get install -y $(find . -type f -name '*.deb')
-
-    - name: Install Git (Mac)
-      if: runner.os == 'macOS'
-      run: |
-        cd ../out/Scalar.GitInstaller
-        sudo /usr/sbin/installer -pkg $(find . -type f -name '*.pkg') -target /
-
-    - name: Install Git (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        Set-Location -Path ..\out\Scalar.GitInstaller
-        Write-Host 'Uninstalling Git ...'
-        foreach ($file in Get-ChildItem 'C:\Program Files\Git' -Recurse -File -Include 'unins*.exe') {
-          & $file.Fullname /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
-          Wait-Process -Name $file.Basename
-        }
-        Remove-Item 'C:\Program Files\Git' -Recurse -Force
-        Write-Host 'Installing GitForWindows ...'
-        $files = Get-ChildItem . -Recurse -File -Include 'Git-*.vfs.*.exe'
-        & $files[0].Fullname /DIR="C:\Program Files\Git" /NOICONS /COMPONENTS="ext,ext\shellhere,ext\guihere,assoc,assoc_sh" /GROUP="Git" /SP- /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLOWDOWNGRADE=1 /LOG=install.log
-        Wait-Process $files[0].Basename
-        Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\GitForWindows'
-
     - name: Configure feature.scalar
       run: git config --global feature.scalar ${{ matrix.features }}
 
@@ -115,7 +134,7 @@ jobs:
         git version --build-options
         cd ../out
         PATH="$PWD/Scalar/$BUILD_FRAGMENT:$PWD/Scalar.Service/$BUILD_FRAGMENT:$PATH"
-        Scalar.FunctionalTests/$BUILD_FRAGMENT/Scalar.FunctionalTests$BUILD_FILE_EXT --test-scalar-on-path --full-suite
+        Scalar.FunctionalTests/$BUILD_FRAGMENT/Scalar.FunctionalTests$BUILD_FILE_EXT --test-scalar-on-path --test-git-on-path --full-suite
 
     - id: trace2_zip_unix
       if: runner.os != 'Windows' && ( success() || failure() ) && ( steps.functional_test.conclusion == 'success' || steps.functional_test.conclusion == 'failure' )
