@@ -1,7 +1,7 @@
 name: Scalar
 
 env:
-  GIT_REPOSITORY: microsoft/git
+  GIT_REPOSITORY: dscho/git
   GIT_REF: tentative/vfs-2.32.0
   DEVELOPER: 1
 
