@@ -19,8 +19,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, windows-2019, macos-10.15]
-        features: [false, experimental]
+        os: [windows-2019]
+        features: [experimental]
 
     env:
       BUILD_FRAGMENT: bin/Release/netcoreapp3.1
@@ -103,9 +103,6 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore -p:UseAppHost=true # Force generation of executable on macOS.
 
-    - name: Unit test
-      run: dotnet test --no-restore
-
     - name: Setup platform (Linux)
       if: runner.os == 'Linux'
       run: |
@@ -130,6 +127,7 @@ jobs:
 
     - id: functional_test
       name: Functional test
+      timeout-minutes: 1
       shell: bash
       run: |
         export GIT_TRACE2_EVENT="$PWD/$TRACE2_BASENAME/Event"
@@ -142,7 +140,13 @@ jobs:
         git version --build-options
         cd ../out
         PATH="$PWD/Scalar/$BUILD_FRAGMENT:$PWD/Scalar.Service/$BUILD_FRAGMENT:$PATH"
-        Scalar.FunctionalTests/$BUILD_FRAGMENT/Scalar.FunctionalTests$BUILD_FILE_EXT --test-scalar-on-path --test-git-on-path --full-suite
+        Scalar.FunctionalTests/$BUILD_FRAGMENT/Scalar.FunctionalTests$BUILD_FILE_EXT --test-scalar-on-path --test-git-on-path --test="Scalar.FunctionalTests.Tests.GitCommands.GitCommandsTests(SparseMode).ChangeBranchAndMergeRebaseOnAnotherBranch()"
+
+    - name: action-tmate
+      if: failure()
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
 
     - id: trace2_zip_unix
       if: runner.os != 'Windows' && ( success() || failure() ) && ( steps.functional_test.conclusion == 'success' || steps.functional_test.conclusion == 'failure' )
