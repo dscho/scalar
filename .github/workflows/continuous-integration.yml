@@ -2,7 +2,7 @@ name: Scalar
 
 on:
   push:
-    branches: [ main, releases/* ]
+    branches: [ main, releases/*, vfs-2.32.0 ]
   pull_request:
     branches: [ main, releases/* ]
 
