@@ -265,6 +265,7 @@ namespace Scalar.FunctionalTests.Tests.GitCommands
             ProcessResult expectedResult = GitProcess.InvokeProcess(controlRepoRoot, command, standardInput);
             ProcessResult actualResult = GitHelpers.InvokeGitAgainstScalarRepo(scalarRepoRoot, command, input: standardInput);
 
+            System.Console.Error.WriteLine($"actual result of {command}:\noutput\n{actualResult.Output}\nerrors:\n${actualResult.Errors}");
             if (!ignoreErrors)
             {
                 GitHelpers.LinesShouldMatch(command, expectedResult.Errors, actualResult.Errors);
