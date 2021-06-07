@@ -142,12 +142,6 @@ jobs:
         PATH="$PWD/Scalar/$BUILD_FRAGMENT:$PWD/Scalar.Service/$BUILD_FRAGMENT:$PATH"
         Scalar.FunctionalTests/$BUILD_FRAGMENT/Scalar.FunctionalTests$BUILD_FILE_EXT --test-scalar-on-path --test-git-on-path --test="Scalar.FunctionalTests.Tests.GitCommands.GitCommandsTests(SparseMode).ChangeBranchAndMergeRebaseOnAnotherBranch()"
 
-    - name: action-tmate
-      if: failure()
-      uses: mxschmitt/action-tmate@v3
-      with:
-        limit-access-to-actor: true
-
     - id: trace2_zip_unix
       if: runner.os != 'Windows' && ( success() || failure() ) && ( steps.functional_test.conclusion == 'success' || steps.functional_test.conclusion == 'failure' )
       name: Zip Trace2 Logs (Unix)
@@ -166,3 +160,9 @@ jobs:
         name: ${{ env.TRACE2_BASENAME }}.zip
         path: ${{ env.TRACE2_BASENAME }}.zip
         retention-days: 3
+
+    - name: action-tmate
+      if: failure()
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
