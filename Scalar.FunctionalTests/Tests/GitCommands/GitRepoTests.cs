@@ -118,7 +118,6 @@ namespace Scalar.FunctionalTests.Tests.GitCommands
         [OneTimeTearDown]
         public virtual void TearDownForFixture()
         {
-            return;
             if (!this.enlistmentPerTest)
             {
                 this.DeleteEnlistment();
@@ -149,7 +148,6 @@ namespace Scalar.FunctionalTests.Tests.GitCommands
         [TearDown]
         public virtual void TearDownForTest()
         {
-            return;
             this.TestValidationAndCleanup();
         }
 
