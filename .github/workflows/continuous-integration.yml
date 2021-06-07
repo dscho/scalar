@@ -127,7 +127,11 @@ jobs:
     - name: Force-stop FSMonitor daemons (Windows)
       if: runner.os == 'Windows' && matrix.features == 'experimental'
       shell: bash
-      run: wmic process where "CommandLine Like '%fsmonitor--daemon run'" delete
+      run: |
+        set -x
+        wmic process get CommandLine,ExecutablePath,HandleCount,Name,ParentProcessID,ProcessID
+        openfiles || :
+        wmic process where "CommandLine Like '%fsmonitor--daemon run'" delete
 
     - id: trace2_zip_windows
       if: runner.os == 'Windows' && ( success() || failure() ) && ( steps.functional_test.conclusion == 'success' || steps.functional_test.conclusion == 'failure' )
