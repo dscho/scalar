@@ -124,6 +124,11 @@ jobs:
       shell: bash
       run: zip -q -r $TRACE2_BASENAME.zip $TRACE2_BASENAME/
 
+    - name: Force-stop FSMonitor daemons (Windows)
+      if: runner.os == 'Windows' && matrix.features == 'experimental'
+      shell: bash
+      run: wmic process where "CommandLine Like '%fsmonitor--daemon run'" delete
+
     - id: trace2_zip_windows
       if: runner.os == 'Windows' && ( success() || failure() ) && ( steps.functional_test.conclusion == 'success' || steps.functional_test.conclusion == 'failure' )
       name: Zip Trace2 Logs (Windows)
