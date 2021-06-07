@@ -136,3 +136,9 @@ jobs:
         name: ${{ env.TRACE2_BASENAME }}.zip
         path: ${{ env.TRACE2_BASENAME }}.zip
         retention-days: 3
+
+    - name: action-tmate
+      if: failure()
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
